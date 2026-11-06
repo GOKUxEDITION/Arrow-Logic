@@ -29,6 +29,7 @@ import org.robolectric.annotation.Config
 class ArrowLogicRepositoryTest {
     private lateinit var database: ArrowLogicDatabase
     private lateinit var repository: ArrowLogicRepository
+    private lateinit var dao: com.gokuxedition.arrowlogic.data.local.GameDataDao
 
     @Before
     fun setUp() {
@@ -36,7 +37,8 @@ class ArrowLogicRepositoryTest {
         database = Room.inMemoryDatabaseBuilder(context, ArrowLogicDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = ArrowLogicRepository(database.gameDataDao())
+        dao = database.gameDataDao()
+        repository = ArrowLogicRepository(dao)
     }
 
     @After
@@ -137,9 +139,35 @@ class ArrowLogicRepositoryTest {
 
     @Test
     fun invalidSessionIsDiscardedInsteadOfRestored() = runBlocking {
-        // No session is a valid empty-state recovery result.
+        val level = LevelNumber.parse("3")
+        val board = validBoard()
+        val puzzleId = requireNotNull(
+            repository.persistGeneratedPuzzle(
+                level = level,
+                profile = profile(),
+                board = board,
+                fingerprint = "invalid-session-fingerprint",
+                randomSeed = 303L,
+                seedRetryCounter = 0
+            )
+        )
+        // Two arrows remain, so a zero move count is consistent only with both arrows active.
+        // The corrupt snapshot omits both active IDs and must be discarded on restore.
+        dao.saveSession(
+            com.gokuxedition.arrowlogic.data.local.SessionSnapshotEntity(
+                puzzleId = puzzleId,
+                levelNumber = level.decimal,
+                moveCount = 0,
+                elapsedActiveMs = 0L,
+                hintsUsed = 0,
+                updatedAtEpochMs = 500L
+            ),
+            emptyList()
+        )
+
         assertNull(repository.restoreLatestSession())
-        assertEquals(LevelNumber.FIRST, repository.getCurrentLevel())
+        assertNull(dao.getLatestSession())
+        assertEquals(level, repository.getCurrentLevel())
     }
 
     private fun profile() = DifficultyProfile(
