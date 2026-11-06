@@ -25,6 +25,7 @@
     <string name="message_arrow_blocked">That arrow is blocked. Clear the arrow in its forward path first.</string>
     <string name="message_arrow_unknown">That arrow is no longer on the board.</string>
     <string name="message_reset">Level reset. Find a clear escape path.</string>
+    <string name="message_persistence_warning">Your move is visible, but saving progress failed. Keep the app open and try again.</string>
     <string name="direction_up">up</string>
     <string name="direction_down">down</string>
     <string name="direction_left">left</string>
