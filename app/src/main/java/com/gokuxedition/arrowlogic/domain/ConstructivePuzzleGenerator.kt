@@ -130,7 +130,7 @@ object ConstructivePuzzleGenerator {
                     for (x in 0 until width) {
                         val candidate = Arrow(
                             id = "A${(nextIndex + 1).toString().padStart(3, '0')}",
-                            tail = Cell(x, y),
+                            head = Cell(x, y),
                             direction = direction,
                             length = length
                         )
@@ -164,7 +164,7 @@ object ConstructivePuzzleGenerator {
             append(board.width).append('x').append(board.height).append('\n')
             board.arrows.sortedBy { it.id }.forEach { arrow ->
                 append(arrow.id).append('|')
-                    .append(arrow.tail.x).append(',').append(arrow.tail.y).append('|')
+                    .append(arrow.head.x).append(',').append(arrow.head.y).append('|')
                     .append(arrow.direction.name).append('|')
                     .append(arrow.length).append('\n')
             }
