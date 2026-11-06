@@ -190,11 +190,14 @@ private fun BoardViewport(
                 val arrowWidth = if (horizontal) CellSize * arrow.length.toFloat() else CellSize
                 val arrowHeight = if (horizontal) CellSize else CellSize * arrow.length.toFloat()
                 val arrowColor = if (isClear) AvailableArrowColor else BlockedArrowColor
+                val cells = arrow.occupiedCells()
+                val originX = cells.minOf { it.x }
+                val originY = cells.minOf { it.y }
                 val directionName = arrow.direction.name.lowercase()
 
                 Box(
                     modifier = Modifier
-                        .offset(x = CellSize * arrow.tail.x.toFloat(), y = CellSize * arrow.tail.y.toFloat())
+                        .offset(x = CellSize * originX.toFloat(), y = CellSize * originY.toFloat())
                         .size(width = arrowWidth, height = arrowHeight)
                         .clip(RoundedCornerShape(9.dp))
                         .background(arrowColor)
