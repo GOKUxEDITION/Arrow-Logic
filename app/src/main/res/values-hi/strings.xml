@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">ARROW LOGIC</string>
+    <string name="tagline">आगे सोचें। रास्ता साफ़ करें।</string>
+    <string name="level_label">लेवल %1$s</string>
+    <string name="moves_count">%1$d चालें</string>
+    <string name="arrows_count">%1$d / %2$d तीर</string>
+    <string name="pause">रोकें</string>
+    <string name="resume">जारी रखें</string>
+    <string name="puzzle_unavailable">पहेली उपलब्ध नहीं है</string>
+    <string name="unverified_level_warning">बिना सत्यापन वाली पहेली नहीं दिखाई जाएगी।</string>
+    <string name="paused">रुका हुआ</string>
+    <string name="session_unchanged">आपकी मौजूदा पहेली में कोई बदलाव नहीं हुआ है।</string>
+    <string name="restart_level">लेवल फिर शुरू करें</string>
+    <string name="restart">फिर शुरू करें</string>
+    <string name="next_level">अगला लेवल</string>
+    <string name="board_instruction">किसी भी तीर पर टैप करें। रास्ता साफ़ होने तक रुके हुए तीर नहीं हटेंगे।</string>
+    <string name="message_preparing">आपकी पहेली तैयार हो रही है</string>
+    <string name="message_generating">लेवल %1$s बनाया और सत्यापित किया जा रहा है</string>
+    <string name="message_verified">लेवल सत्यापित है। उस तीर पर टैप करें जिसका बाहर जाने का रास्ता साफ़ है।</string>
+    <string name="message_generation_failed">पहेली सुरक्षित रूप से तैयार नहीं हो सकी।</string>
+    <string name="message_generation_rejected">यह लेवल सभी सत्यापन चरणों में सफल नहीं हुआ।</string>
+    <string name="message_generation_details">%1$s</string>
+    <string name="message_completed">पहेली पूरी हुई। आपने %1$d चालों में सभी तीर हटा दिए।</string>
+    <string name="message_arrow_escaped">तीर बाहर निकल गया। %1$d बाकी हैं।</string>
+    <string name="message_arrow_blocked">यह तीर रुका हुआ है। पहले इसके रास्ते में मौजूद तीर हटाएँ।</string>
+    <string name="message_arrow_unknown">यह तीर अब बोर्ड पर मौजूद नहीं है।</string>
+    <string name="message_reset">लेवल फिर शुरू हुआ। बाहर निकलने का साफ़ रास्ता खोजें।</string>
+    <string name="direction_up">ऊपर</string>
+    <string name="direction_down">नीचे</string>
+    <string name="direction_left">बाएँ</string>
+    <string name="direction_right">दाएँ</string>
+    <string name="arrow_path_clear">रास्ता साफ़</string>
+    <string name="arrow_blocked">रुका हुआ</string>
+    <string name="arrow_content_description">तीर %1$s, दिशा %2$s, लंबाई %3$d, %4$s</string>
+</resources>
