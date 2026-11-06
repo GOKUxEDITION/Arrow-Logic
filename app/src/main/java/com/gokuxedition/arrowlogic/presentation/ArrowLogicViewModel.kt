@@ -8,10 +8,12 @@ import com.gokuxedition.arrowlogic.domain.GameState
 import com.gokuxedition.arrowlogic.domain.GenerationResult
 import com.gokuxedition.arrowlogic.domain.LevelNumber
 import com.gokuxedition.arrowlogic.domain.MoveResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -27,22 +29,26 @@ class ArrowLogicViewModel : ViewModel() {
     private val campaignSeed = "arrow-logic-offline-campaign-v1"
     private val mutableUiState = MutableStateFlow(ArrowLogicUiState())
     val uiState: StateFlow<ArrowLogicUiState> = mutableUiState.asStateFlow()
+    private var generationJob: Job? = null
 
     init {
         loadLevel(LevelNumber.FIRST)
     }
 
     fun loadLevel(level: LevelNumber) {
+        generationJob?.cancel()
         mutableUiState.value = ArrowLogicUiState(
             level = level,
             isGenerating = true,
             message = "Generating and verifying level ${level.decimal}"
         )
-        viewModelScope.launch {
+        generationJob = viewModelScope.launch {
             val result = try {
                 withContext(Dispatchers.Default) {
                     ConstructivePuzzleGenerator.generate(level, campaignSeed)
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 mutableUiState.value = mutableUiState.value.copy(
                     isGenerating = false,
@@ -106,6 +112,8 @@ class ArrowLogicViewModel : ViewModel() {
     }
 
     fun nextLevel() {
-        loadLevel(mutableUiState.value.level.next())
+        val current = mutableUiState.value
+        if (current.isGenerating || current.gameState?.isComplete != true) return
+        loadLevel(current.level.next())
     }
 }
