@@ -20,7 +20,7 @@ value class LevelNumber private constructor(val decimal: String) : Comparable<Le
         }
 
         fun parse(value: String): LevelNumber {
-            require(value.isNotBlank() && value.all(Char::isDigit)) { "Level must be a positive decimal integer" }
+            require(value.isNotBlank() && value.all { it >= '0' && it <= '9' }) { "Level must be a positive decimal integer" }
             return of(BigInteger(value))
         }
 
