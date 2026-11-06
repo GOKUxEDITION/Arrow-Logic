@@ -12,4 +12,13 @@ class LevelNumberTest {
     @Test fun canonicalizesLeadingZeroes() {
         assertEquals("12", LevelNumber.parse("00012").decimal)
     }
+
+    @Test fun rejectsNonAsciiDigits() {
+        try {
+            LevelNumber.parse("١٢")
+            fail("Non-ASCII decimal digits must be rejected")
+        } catch (_: IllegalArgumentException) {
+            // Expected validation.
+        }
+    }
 }
