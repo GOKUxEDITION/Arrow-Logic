@@ -10,18 +10,31 @@ import com.gokuxedition.arrowlogic.domain.LevelNumber
 import com.gokuxedition.arrowlogic.domain.MoveResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+sealed interface GameplayMessage {
+    data object Preparing : GameplayMessage
+    data class Generating(val level: String) : GameplayMessage
+    data object Verified : GameplayMessage
+    data object GenerationFailed : GameplayMessage
+    data class GenerationRejected(val details: String) : GameplayMessage
+    data class Complete(val moves: Int) : GameplayMessage
+    data class ArrowEscaped(val remaining: Int) : GameplayMessage
+    data object ArrowBlocked : GameplayMessage
+    data object ArrowUnknown : GameplayMessage
+    data object Reset : GameplayMessage
+}
 
 data class ArrowLogicUiState(
     val level: LevelNumber = LevelNumber.FIRST,
     val isGenerating: Boolean = true,
     val gameState: GameState? = null,
-    val message: String = "Preparing your puzzle",
+    val message: GameplayMessage = GameplayMessage.Preparing,
     val generationError: String? = null
 )
 
@@ -40,7 +53,7 @@ class ArrowLogicViewModel : ViewModel() {
         mutableUiState.value = ArrowLogicUiState(
             level = level,
             isGenerating = true,
-            message = "Generating and verifying level ${level.decimal}"
+            message = GameplayMessage.Generating(level.decimal)
         )
         generationJob = viewModelScope.launch {
             val result = try {
@@ -52,7 +65,7 @@ class ArrowLogicViewModel : ViewModel() {
             } catch (error: Exception) {
                 mutableUiState.value = mutableUiState.value.copy(
                     isGenerating = false,
-                    message = "Puzzle generation failed safely.",
+                    message = GameplayMessage.GenerationFailed,
                     generationError = error.message ?: error.javaClass.simpleName
                 )
                 return@launch
@@ -63,14 +76,15 @@ class ArrowLogicViewModel : ViewModel() {
                     mutableUiState.value = mutableUiState.value.copy(
                         isGenerating = false,
                         gameState = GameEngine.initialState(result.board),
-                        message = "Level verified. Tap an arrow whose path to the edge is clear."
+                        message = GameplayMessage.Verified
                     )
                 }
                 is GenerationResult.Failed -> {
                     mutableUiState.value = mutableUiState.value.copy(
                         isGenerating = false,
-                        message = "This level could not pass every verification gate.",
-                        generationError = "${result.reason} after ${result.attemptsUsed} attempts"
+                        message = GameplayMessage.GenerationRejected(
+                            "${result.reason} after ${result.attemptsUsed} attempts"
+                        )
                     )
                 }
             }
@@ -85,19 +99,17 @@ class ArrowLogicViewModel : ViewModel() {
                 mutableUiState.value = current.copy(
                     gameState = result.state,
                     message = if (result.state.isComplete) {
-                        "Puzzle complete. You cleared every arrow in ${result.state.moveCount} moves."
+                        GameplayMessage.Complete(result.state.moveCount)
                     } else {
-                        "Arrow escaped. ${result.state.remainingArrows.size} remaining."
+                        GameplayMessage.ArrowEscaped(result.state.remainingArrows.size)
                     }
                 )
             }
             is MoveResult.Blocked -> {
-                mutableUiState.value = current.copy(
-                    message = "That arrow is blocked. Clear the arrow in its forward path first."
-                )
+                mutableUiState.value = current.copy(message = GameplayMessage.ArrowBlocked)
             }
             MoveResult.UnknownArrow -> {
-                mutableUiState.value = current.copy(message = "That arrow is no longer on the board.")
+                mutableUiState.value = current.copy(message = GameplayMessage.ArrowUnknown)
             }
         }
     }
@@ -107,7 +119,7 @@ class ArrowLogicViewModel : ViewModel() {
         val board = current.gameState?.originalBoard ?: return
         mutableUiState.value = current.copy(
             gameState = GameEngine.initialState(board),
-            message = "Level reset. Find a clear escape path."
+            message = GameplayMessage.Reset
         )
     }
 
