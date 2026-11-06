@@ -14,9 +14,7 @@ sealed interface GenerationResult {
     data class Generated(
         val level: LevelNumber,
         val board: Board,
-        /** Reverse construction order; retained as a constructive solution witness. */
         val constructiveSolution: List<String>,
-        /** Independently discovered solution from PuzzleSolver. */
         val solverSolution: List<String>,
         val fingerprint: String,
         val attemptsUsed: Int
@@ -30,13 +28,12 @@ sealed interface GenerationResult {
 }
 
 /**
- * Builds a puzzle by inserting each new arrow only when that arrow can escape immediately.
- * Therefore, removing arrows in reverse insertion order is always a constructive witness.
- * An independent solver and production-engine replay are still mandatory publication gates.
+ * Inserts an arrow only if it is immediately escapable against all arrows already placed.
+ * Reverse insertion order is therefore a constructive solution witness. An independent
+ * solver and production-engine replay remain mandatory publication gates.
  */
 object ConstructivePuzzleGenerator {
     const val GENERATOR_VERSION: Int = 1
-    private const val MAX_EQUAL_SCORE_RESERVOIR = Int.MAX_VALUE
 
     fun generate(level: LevelNumber, rootSeed: String): GenerationResult =
         generate(level, rootSeed, DifficultyProfile.forLevel(level))
@@ -47,10 +44,7 @@ object ConstructivePuzzleGenerator {
         profile: DifficultyProfile
     ): GenerationResult {
         require(rootSeed.isNotBlank()) { "Root seed must not be blank" }
-
-        val random = DeterministicRandom(
-            LevelSeed.derive(rootSeed, GENERATOR_VERSION, level)
-        )
+        val random = DeterministicRandom(LevelSeed.derive(rootSeed, GENERATOR_VERSION, level))
         var lastFailure = GenerationFailureReason.NO_VALID_PLACEMENT
 
         repeat(profile.maxBoardAttempts) { attemptIndex ->
@@ -75,7 +69,6 @@ object ConstructivePuzzleGenerator {
             }
 
             if (!constructionCompleted) return@repeat
-
             val board = Board(profile.boardWidth, profile.boardHeight, inserted.toList())
             if (EscapeRules.validateBoard(board).isNotEmpty()) {
                 lastFailure = GenerationFailureReason.CONSTRUCTIVE_WITNESS_REJECTED
@@ -90,8 +83,7 @@ object ConstructivePuzzleGenerator {
 
             when (val solver = PuzzleSolver.solve(board, profile.solverNodeBudget)) {
                 is SolveResult.Solved -> {
-                    val solverReplay = SolutionReplayValidator.validate(board, solver.arrowIds)
-                    if (!solverReplay.valid) {
+                    if (!SolutionReplayValidator.validate(board, solver.arrowIds).valid) {
                         lastFailure = GenerationFailureReason.CONSTRUCTIVE_WITNESS_REJECTED
                         return@repeat
                     }
@@ -108,12 +100,7 @@ object ConstructivePuzzleGenerator {
                 SolveResult.BudgetExceeded -> lastFailure = GenerationFailureReason.SOLVER_BUDGET_EXCEEDED
             }
         }
-
-        return GenerationResult.Failed(
-            level = level,
-            reason = lastFailure,
-            attemptsUsed = profile.maxBoardAttempts
-        )
+        return GenerationResult.Failed(level, lastFailure, profile.maxBoardAttempts)
     }
 
     private fun chooseNextArrow(
@@ -125,8 +112,13 @@ object ConstructivePuzzleGenerator {
         random: DeterministicRandom
     ): Arrow? {
         val currentBoard = Board(width, height, existing)
-        val currentlyLegal = EscapeRules.legalArrowIds(currentBoard).toHashSet()
-        val occupied = existing.asSequence().flatMap { it.occupiedCells().asSequence() }.toHashSet()
+        val legalRays = existing.asSequence()
+            .filter { EscapeRules.isClear(currentBoard, it.id) }
+            .map { EscapeRules.forwardRayCells(width, height, it).toHashSet() }
+            .toList()
+        val occupied = existing.asSequence()
+            .flatMap { it.occupiedCells().asSequence() }
+            .toHashSet()
 
         var bestScore = -1
         var bestCandidate: Arrow? = null
@@ -145,13 +137,10 @@ object ConstructivePuzzleGenerator {
                         val cells = candidate.occupiedCells()
                         if (cells.any { it.x !in 0 until width || it.y !in 0 until height }) continue
                         if (cells.any { it in occupied }) continue
+                        if (EscapeRules.forwardRayCells(width, height, candidate).any { it in occupied }) continue
 
-                        val candidateBoard = Board(width, height, existing + candidate)
-                        if (!EscapeRules.isClear(candidateBoard, candidate.id)) continue
-
-                        // Prefer insertions that create new dependencies for earlier arrows.
-                        val legalAfter = EscapeRules.legalArrowIds(candidateBoard).toHashSet()
-                        val newlyBlocked = currentlyLegal.count { it !in legalAfter }
+                        val candidateCells = cells.toHashSet()
+                        val newlyBlocked = legalRays.count { ray -> ray.any { it in candidateCells } }
                         when {
                             newlyBlocked > bestScore -> {
                                 bestScore = newlyBlocked
@@ -160,7 +149,6 @@ object ConstructivePuzzleGenerator {
                             }
                             newlyBlocked == bestScore -> {
                                 equalBestCount++
-                                // Reservoir sampling keeps selection unbiased among equal scores.
                                 if (random.nextInt(equalBestCount) == 0) bestCandidate = candidate
                             }
                         }
@@ -183,6 +171,6 @@ object ConstructivePuzzleGenerator {
         }
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(canonical.toByteArray(StandardCharsets.UTF_8))
-        return digest.joinToString("") { byte -> "%02x".format(byte) }
+        return digest.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
     }
 }
