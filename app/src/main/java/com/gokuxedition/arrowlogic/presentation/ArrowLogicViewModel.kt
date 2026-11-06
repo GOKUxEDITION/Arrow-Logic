@@ -266,7 +266,21 @@ class ArrowLogicViewModel(
                 }
                 val latest = mutableUiState.value
                 if (latest.puzzleId == puzzleId && latest.gameState == game) {
-                    mutableUiState.value = latest.copy(isPersisting = false)
+                    val restoredMessage = if (latest.message == GameplayMessage.PersistenceWarning) {
+                        if (game.isComplete) {
+                            GameplayMessage.Complete(game.moveCount)
+                        } else if (game.moveCount == 0) {
+                            GameplayMessage.Verified
+                        } else {
+                            GameplayMessage.ArrowEscaped(game.remainingArrows.size)
+                        }
+                    } else {
+                        latest.message
+                    }
+                    mutableUiState.value = latest.copy(
+                        isPersisting = false,
+                        message = restoredMessage
+                    )
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
