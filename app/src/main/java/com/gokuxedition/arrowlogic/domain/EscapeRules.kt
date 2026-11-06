@@ -5,6 +5,11 @@ object EscapeRules {
         val errors = mutableListOf<String>()
         val occupied = mutableMapOf<Cell, String>()
         board.arrows.forEach { arrow ->
+            val axisLimit = if (arrow.direction.dx == 0) board.height else board.width
+            if (arrow.length > axisLimit) {
+                errors += "Arrow ${arrow.id} length exceeds its board axis"
+                return@forEach
+            }
             arrow.occupiedCells().forEach { cell ->
                 if (cell.x !in 0 until board.width || cell.y !in 0 until board.height) {
                     errors += "Arrow ${arrow.id} has out-of-bounds cell ${cell.x},${cell.y}"
@@ -22,9 +27,8 @@ object EscapeRules {
     fun forwardRayCells(boardWidth: Int, boardHeight: Int, arrow: Arrow): List<Cell> {
         require(boardWidth > 0 && boardHeight > 0)
         val result = mutableListOf<Cell>()
-        val head = arrow.head()
-        var x = head.x + arrow.direction.dx
-        var y = head.y + arrow.direction.dy
+        var x = arrow.head.x + arrow.direction.dx
+        var y = arrow.head.y + arrow.direction.dy
         while (x in 0 until boardWidth && y in 0 until boardHeight) {
             result += Cell(x, y)
             x += arrow.direction.dx
