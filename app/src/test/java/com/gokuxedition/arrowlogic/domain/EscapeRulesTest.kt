@@ -36,7 +36,7 @@ class EscapeRulesTest {
         ))
         assertTrue(EscapeRules.validateBoard(overlap).isNotEmpty())
 
-        val outOfBounds = Board(2, 2, listOf(Arrow("c", Cell(0, 0), Direction.LEFT, 2)))
+        val outOfBounds = Board(2, 2, listOf(Arrow("c", Cell(1, 0), Direction.LEFT, 2)))
         assertTrue(EscapeRules.validateBoard(outOfBounds).isNotEmpty())
     }
 }
