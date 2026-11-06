@@ -46,7 +46,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.gokuxedition.arrowlogic.domain.Arrow
 import com.gokuxedition.arrowlogic.domain.Board
 import com.gokuxedition.arrowlogic.domain.Direction
 import com.gokuxedition.arrowlogic.domain.EscapeRules
@@ -198,7 +197,6 @@ private fun BoardViewport(
                     modifier = Modifier
                         .padding(start = CellSize * arrow.tail.x.toFloat(), top = CellSize * arrow.tail.y.toFloat())
                         .size(width = arrowWidth, height = arrowHeight)
-                        .padding(2.dp)
                         .clip(RoundedCornerShape(9.dp))
                         .background(arrowColor)
                         .clickable { onArrowTapped(arrow.id) }
@@ -209,7 +207,7 @@ private fun BoardViewport(
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(Modifier.fillMaxSize().padding(6.dp)) {
-                        drawDirectionArrow(arrow.direction, arrowColor)
+                        drawDirectionArrow(arrow.direction, Color.White)
                     }
                 }
             }
