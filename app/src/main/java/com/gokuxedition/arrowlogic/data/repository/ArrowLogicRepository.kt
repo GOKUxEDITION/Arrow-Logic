@@ -179,13 +179,22 @@ class ArrowLogicRepository(
         val now = System.currentTimeMillis()
         val nextLevel = level.next()
         val previous = dao.getPlayerProgress()
+        val previousCurrent = previous?.let {
+            LevelNumber.parse(it.currentLevelNumber)
+        }
         val previousHighest = previous?.let {
             LevelNumber.parse(it.highestUnlockedLevelNumber)
         }
-        val highest = if (previousHighest != null && previousHighest >= nextLevel) {
-            previousHighest
+        // Completing a replayed historical level must never move the campaign pointer backwards.
+        val nextCurrent = if (previousCurrent != null && previousCurrent > nextLevel) {
+            previousCurrent
         } else {
             nextLevel
+        }
+        val highest = if (previousHighest != null && previousHighest >= nextCurrent) {
+            previousHighest
+        } else {
+            nextCurrent
         }
 
         val completed = CompletedLevelEntity(
@@ -198,7 +207,7 @@ class ArrowLogicRepository(
             stars = 3
         )
         val progress = PlayerProgressEntity(
-            currentLevelNumber = nextLevel.decimal,
+            currentLevelNumber = nextCurrent.decimal,
             highestUnlockedLevelNumber = highest.decimal,
             currentPuzzleId = null,
             updatedAtEpochMs = now
