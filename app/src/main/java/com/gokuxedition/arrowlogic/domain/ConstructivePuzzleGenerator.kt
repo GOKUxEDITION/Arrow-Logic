@@ -13,6 +13,8 @@ enum class GenerationFailureReason {
 sealed interface GenerationResult {
     data class Generated(
         val level: LevelNumber,
+        val seed: Long,
+        val seedRetryCounter: Int,
         val board: Board,
         val constructiveSolution: List<String>,
         val solverSolution: List<String>,
@@ -33,18 +35,27 @@ sealed interface GenerationResult {
  * solver and production-engine replay remain mandatory publication gates.
  */
 object ConstructivePuzzleGenerator {
-    const val GENERATOR_VERSION: Int = 1
+    const val GENERATOR_VERSION: Int = 2
 
     fun generate(level: LevelNumber, rootSeed: String): GenerationResult =
-        generate(level, rootSeed, DifficultyProfile.forLevel(level))
+        generate(level, rootSeed, DifficultyProfile.forLevel(level), 0)
 
     fun generate(
         level: LevelNumber,
         rootSeed: String,
         profile: DifficultyProfile
+    ): GenerationResult = generate(level, rootSeed, profile, 0)
+
+    fun generate(
+        level: LevelNumber,
+        rootSeed: String,
+        profile: DifficultyProfile,
+        seedRetryCounter: Int
     ): GenerationResult {
         require(rootSeed.isNotBlank()) { "Root seed must not be blank" }
-        val random = DeterministicRandom(LevelSeed.derive(rootSeed, GENERATOR_VERSION, level))
+        require(seedRetryCounter >= 0) { "Seed retry counter must not be negative" }
+        val seed = LevelSeed.derive(rootSeed, GENERATOR_VERSION, level, seedRetryCounter)
+        val random = DeterministicRandom(seed)
         var lastFailure = GenerationFailureReason.NO_VALID_PLACEMENT
 
         repeat(profile.maxBoardAttempts) { attemptIndex ->
@@ -89,6 +100,8 @@ object ConstructivePuzzleGenerator {
                     }
                     return GenerationResult.Generated(
                         level = level,
+                        seed = seed,
+                        seedRetryCounter = seedRetryCounter,
                         board = board,
                         constructiveSolution = witness,
                         solverSolution = solver.arrowIds,
