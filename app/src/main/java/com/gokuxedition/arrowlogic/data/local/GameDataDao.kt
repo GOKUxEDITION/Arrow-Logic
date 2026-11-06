@@ -30,19 +30,33 @@ interface GameDataDao {
         SELECT * FROM puzzle_definition
         WHERE level_number = :levelNumber
           AND generator_version = :generatorVersion
-          AND random_seed = :randomSeed
         LIMIT 1
         """
     )
-    suspend fun getPuzzleByIdentity(
+    suspend fun getPuzzleByLevelAndVersion(
         levelNumber: String,
-        generatorVersion: Int,
-        randomSeed: Long
+        generatorVersion: Int
     ): PuzzleDefinitionWithArrows?
 
     @Transaction
     @Query("SELECT * FROM puzzle_definition WHERE puzzle_id = :puzzleId LIMIT 1")
     suspend fun getPuzzleById(puzzleId: String): PuzzleDefinitionWithArrows?
+
+    @Transaction
+    suspend fun savePuzzleIfFingerprintNovel(
+        definition: PuzzleDefinitionEntity,
+        arrows: List<PuzzleArrowEntity>,
+        fingerprint: RecentPuzzleFingerprintEntity,
+        maximumRecentEntries: Int
+    ): Boolean {
+        if (hasRecentFingerprint(fingerprint.fingerprint)) return false
+        upsertPuzzleDefinition(definition)
+        deletePuzzleArrows(definition.puzzleId)
+        insertPuzzleArrows(arrows)
+        insertRecentFingerprint(fingerprint)
+        trimRecentFingerprints(maximumRecentEntries)
+        return true
+    }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPlayerProgress(entity: PlayerProgressEntity)
