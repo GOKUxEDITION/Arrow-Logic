@@ -19,22 +19,30 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -49,100 +57,188 @@ import com.gokuxedition.arrowlogic.domain.Board
 import com.gokuxedition.arrowlogic.domain.Direction
 import com.gokuxedition.arrowlogic.domain.EscapeRules
 
-private val PageBackground = Color(0xFFF5F8F6)
-private val BoardBackground = Color(0xFFFFFFFF)
-private val GridColor = Color(0xFFDDE6E0)
-private val AvailableArrowColor = Color(0xFF0B7A4B)
-private val BlockedArrowColor = Color(0xFF60736A)
+private val PageBackground = Color(0xFF090B1D)
+private val PanelBackground = Color(0xFF151A38)
+private val BoardBackground = Color(0xFF11162F)
+private val GridColor = Color(0xFF30395F)
+private val AvailableArrowColor = Color(0xFF00DDB4)
+private val BlockedArrowColor = Color(0xFF756AAB)
+private val GoldAccent = Color(0xFFFFC857)
+private val MainText = Color(0xFFF4F5FF)
+private val MutedText = Color(0xFFB9C2E4)
 private val CellSize = 48.dp
+
+private val ArrowLogicDarkColors = darkColorScheme(
+    primary = AvailableArrowColor,
+    onPrimary = Color(0xFF06231D),
+    secondary = Color(0xFFC0A4FF),
+    onSecondary = Color(0xFF20163B),
+    background = PageBackground,
+    onBackground = MainText,
+    surface = PanelBackground,
+    onSurface = MainText,
+    surfaceVariant = Color(0xFF252B4D),
+    onSurfaceVariant = MutedText,
+    outline = Color(0xFF505A83)
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
+    var isPaused by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = PageBackground,
-        topBar = {
-            TopAppBar(title = {
-                Text("ARROW LOGIC", style = MaterialTheme.typography.titleLarge)
-            })
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("LEVEL ${state.level.decimal}", style = MaterialTheme.typography.titleMedium)
-                    Text("Think ahead. Clear the path.", style = MaterialTheme.typography.bodySmall)
-                }
-                val moves = state.gameState?.moveCount ?: 0
-                Text("$moves MOVES", style = MaterialTheme.typography.labelLarge)
+    MaterialTheme(colorScheme = ArrowLogicDarkColors) {
+        Scaffold(
+            containerColor = PageBackground,
+            topBar = {
+                TopAppBar(
+                    title = { Text("ARROW LOGIC", style = MaterialTheme.typography.titleLarge) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = PageBackground,
+                        titleContentColor = MainText
+                    )
+                )
             }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val game = state.gameState
+                val totalArrows = game?.originalBoard?.arrows?.size ?: 0
+                val remainingArrows = game?.remainingArrows?.size ?: 0
+                val moves = game?.moveCount ?: 0
+                val progress = if (totalArrows == 0) 0f
+                    else (totalArrows - remainingArrows).toFloat() / totalArrows.toFloat()
 
-            when {
-                state.isGenerating -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Text(state.message, modifier = Modifier.padding(top = 16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("LEVEL ${state.level.decimal}", style = MaterialTheme.typography.titleMedium, color = MainText)
+                        Text("Think ahead. Clear the path.", style = MaterialTheme.typography.bodySmall, color = MutedText)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("$remainingArrows / $totalArrows ARROWS", style = MaterialTheme.typography.labelLarge, color = MainText)
+                        Text("$moves MOVES", style = MaterialTheme.typography.labelMedium, color = MutedText)
+                    }
+                    if (game != null && !game.isComplete && !state.isGenerating) {
+                        OutlinedButton(onClick = { isPaused = !isPaused }) {
+                            Text(if (isPaused) "Resume" else "Pause")
                         }
                     }
                 }
-                state.gameState == null -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
-                    ) {
-                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("Puzzle unavailable", style = MaterialTheme.typography.titleLarge)
-                            Text(state.message)
-                            state.generationError?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                            Text("The game will not display an unverified generated level.")
+
+                if (game != null) {
+                    Canvas(Modifier.fillMaxWidth().height(5.dp)) {
+                        val radius = CornerRadius(size.height / 2f)
+                        drawRoundRect(GridColor, cornerRadius = radius)
+                        if (progress > 0f) {
+                            drawRoundRect(
+                                color = if (game.isComplete) GoldAccent else AvailableArrowColor,
+                                size = Size(size.width * progress, size.height),
+                                cornerRadius = radius
+                            )
                         }
                     }
                 }
-                else -> {
-                    val game = requireNotNull(state.gameState)
-                    val board = game.currentBoard()
-                    BoardViewport(
-                        board = board,
-                        onArrowTapped = viewModel::onArrowTapped,
-                        modifier = Modifier.fillMaxWidth().weight(1f)
-                    )
-                    Text(
-                        state.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = viewModel::resetLevel,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("Restart") }
-                        Button(
-                            onClick = viewModel::nextLevel,
-                            enabled = game.isComplete,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("Next level") }
+
+                when {
+                    state.isGenerating -> {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = AvailableArrowColor)
+                                Text(state.message, modifier = Modifier.padding(top = 16.dp), color = MainText)
+                            }
+                        }
                     }
-                    Text(
-                        "Tap any arrow segment. Blocked arrows stay in place until their path is clear.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    game == null -> {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = PanelBackground)
+                        ) {
+                            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("Puzzle unavailable", style = MaterialTheme.typography.titleLarge, color = MainText)
+                                Text(state.message, color = MutedText)
+                                state.generationError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MutedText) }
+                                Text("The game will not display an unverified generated level.", color = MainText)
+                            }
+                        }
+                    }
+                    isPaused -> {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = PanelBackground)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(24.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("PAUSED", style = MaterialTheme.typography.headlineMedium, color = GoldAccent)
+                                Text("Your current puzzle is unchanged.", modifier = Modifier.padding(top = 8.dp), color = MutedText)
+                                Button(
+                                    onClick = { isPaused = false },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp)
+                                ) { Text("Resume") }
+                                OutlinedButton(
+                                    onClick = {
+                                        viewModel.resetLevel()
+                                        isPaused = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("Restart level") }
+                            }
+                        }
+                    }
+                    else -> {
+                        val board = game.currentBoard()
+                        BoardViewport(
+                            board = board,
+                            onArrowTapped = viewModel::onArrowTapped,
+                            modifier = Modifier.fillMaxWidth().weight(1f)
+                        )
+                        Text(
+                            state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (game.isComplete) GoldAccent else MainText,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = viewModel::resetLevel,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Restart") }
+                            Button(
+                                onClick = {
+                                    isPaused = false
+                                    viewModel.nextLevel()
+                                },
+                                enabled = game.isComplete,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = GoldAccent,
+                                    contentColor = Color(0xFF322000),
+                                    disabledContainerColor = Color(0xFF3C4055),
+                                    disabledContentColor = Color(0xFF9299B3)
+                                )
+                            ) { Text("Next level") }
+                        }
+                        Text(
+                            "Tap any arrow segment. Blocked arrows stay in place until their path is clear.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MutedText
+                        )
+                    }
                 }
             }
         }
