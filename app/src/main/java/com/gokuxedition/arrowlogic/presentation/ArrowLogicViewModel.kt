@@ -37,6 +37,7 @@ data class ArrowLogicUiState(
     val level: LevelNumber = LevelNumber.FIRST,
     val puzzleId: String? = null,
     val isGenerating: Boolean = true,
+    val isPersisting: Boolean = false,
     val gameState: GameState? = null,
     val message: GameplayMessage = GameplayMessage.Preparing,
     val generationError: String? = null
@@ -107,7 +108,7 @@ class ArrowLogicViewModel(
         generationJob = viewModelScope.launch {
             try {
                 val stored = withContext(Dispatchers.IO) {
-                    repository.loadPuzzle(level, campaignSeed)
+                    repository.loadPuzzle(level)
                 }
                 if (stored != null) {
                     val game = GameEngine.initialState(stored.board)
@@ -124,42 +125,58 @@ class ArrowLogicViewModel(
                     return@launch
                 }
 
-                val result = withContext(Dispatchers.Default) {
-                    ConstructivePuzzleGenerator.generate(level, campaignSeed)
-                }
-                when (result) {
-                    is GenerationResult.Generated -> {
-                        val profile = DifficultyProfile.forLevel(level)
-                        val puzzleId = withContext(Dispatchers.IO) {
-                            repository.persistGeneratedPuzzle(
-                                level = level,
-                                rootSeed = campaignSeed,
-                                profile = profile,
-                                board = result.board,
-                                fingerprint = result.fingerprint
-                            )
-                        }
-                        val game = GameEngine.initialState(result.board)
-                        withContext(Dispatchers.IO) {
-                            repository.saveSession(puzzleId, level, game)
-                        }
-                        mutableUiState.value = ArrowLogicUiState(
+                val profile = DifficultyProfile.forLevel(level)
+                var lastFailure: GenerationResult.Failed? = null
+                repeat(MAX_SEED_RETRIES) { retryCounter ->
+                    val result = withContext(Dispatchers.Default) {
+                        ConstructivePuzzleGenerator.generate(
                             level = level,
-                            puzzleId = puzzleId,
-                            isGenerating = false,
-                            gameState = game,
-                            message = GameplayMessage.Verified
+                            rootSeed = campaignSeed,
+                            profile = profile,
+                            seedRetryCounter = retryCounter
                         )
                     }
-                    is GenerationResult.Failed -> {
-                        mutableUiState.value = mutableUiState.value.copy(
-                            isGenerating = false,
-                            message = GameplayMessage.GenerationRejected(
-                                "${result.reason} after ${result.attemptsUsed} attempts"
+                    when (result) {
+                        is GenerationResult.Failed -> {
+                            lastFailure = result
+                        }
+                        is GenerationResult.Generated -> {
+                            val puzzleId = withContext(Dispatchers.IO) {
+                                repository.persistGeneratedPuzzle(
+                                    level = level,
+                                    profile = profile,
+                                    board = result.board,
+                                    fingerprint = result.fingerprint,
+                                    randomSeed = result.seed,
+                                    seedRetryCounter = result.seedRetryCounter
+                                )
+                            }
+                            // A null ID means the atomic database gate rejected a recent duplicate.
+                            if (puzzleId == null) return@repeat
+
+                            val game = GameEngine.initialState(result.board)
+                            withContext(Dispatchers.IO) {
+                                repository.saveSession(puzzleId, level, game)
+                            }
+                            mutableUiState.value = ArrowLogicUiState(
+                                level = level,
+                                puzzleId = puzzleId,
+                                isGenerating = false,
+                                gameState = game,
+                                message = GameplayMessage.Verified
                             )
-                        )
+                            return@launch
+                        }
                     }
                 }
+
+                val details = lastFailure?.let {
+                    "No candidate passed all verification gates. Last result: ${it.reason} after ${it.attemptsUsed} board attempts across $MAX_SEED_RETRIES seed variants."
+                } ?: "Recent puzzle fingerprints repeated across $MAX_SEED_RETRIES deterministic seed variants."
+                mutableUiState.value = mutableUiState.value.copy(
+                    isGenerating = false,
+                    message = GameplayMessage.GenerationRejected(details)
+                )
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -174,6 +191,7 @@ class ArrowLogicViewModel(
 
     fun onArrowTapped(arrowId: String) {
         val current = mutableUiState.value
+        if (current.isPersisting) return
         val game = current.gameState ?: return
         val puzzleId = current.puzzleId ?: return
         when (val result = GameEngine.tap(game, arrowId)) {
@@ -199,6 +217,7 @@ class ArrowLogicViewModel(
 
     fun resetLevel() {
         val current = mutableUiState.value
+        if (current.isPersisting) return
         val board = current.gameState?.originalBoard ?: return
         val puzzleId = current.puzzleId ?: return
         val reset = GameEngine.initialState(board)
@@ -211,12 +230,27 @@ class ArrowLogicViewModel(
 
     fun nextLevel() {
         val current = mutableUiState.value
-        if (current.isGenerating || current.gameState?.isComplete != true) return
+        if (current.isGenerating || current.isPersisting ||
+            current.message == GameplayMessage.PersistenceWarning ||
+            current.gameState?.isComplete != true
+        ) return
         loadLevel(current.level.next())
+    }
+
+    fun retrySave() {
+        val current = mutableUiState.value
+        if (current.isPersisting || current.message != GameplayMessage.PersistenceWarning) return
+        val puzzleId = current.puzzleId ?: return
+        val game = current.gameState ?: return
+        persistSession(puzzleId, current.level, game)
     }
 
     private fun persistSession(puzzleId: String, level: LevelNumber, game: GameState) {
         sessionWriteJob?.cancel()
+        val before = mutableUiState.value
+        if (before.puzzleId == puzzleId) {
+            mutableUiState.value = before.copy(isPersisting = true)
+        }
         sessionWriteJob = viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -230,14 +264,26 @@ class ArrowLogicViewModel(
                         )
                     }
                 }
+                val latest = mutableUiState.value
+                if (latest.puzzleId == puzzleId && latest.gameState == game) {
+                    mutableUiState.value = latest.copy(isPersisting = false)
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
                 val latest = mutableUiState.value
                 if (latest.puzzleId == puzzleId && latest.gameState == game) {
-                    mutableUiState.value = latest.copy(message = GameplayMessage.PersistenceWarning)
+                    mutableUiState.value = latest.copy(
+                        isPersisting = false,
+                        message = GameplayMessage.PersistenceWarning
+                    )
                 }
             }
         }
     }
+
+    private companion object {
+        const val MAX_SEED_RETRIES = 8
+    }
+
 }
