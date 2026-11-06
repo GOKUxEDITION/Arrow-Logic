@@ -24,7 +24,7 @@ class GameDataDaoTest {
 
     @Before
     fun setUp() {
-        val context = RuntimeEnvironment.getApplication<android.app.Application>()
+        val context = RuntimeEnvironment.getApplication()
         database = Room.inMemoryDatabaseBuilder(context, ArrowLogicDatabase::class.java)
             .allowMainThreadQueries()
             .build()
