@@ -26,6 +26,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -134,7 +135,7 @@ fun ArrowLogicScreen() {
                         Text(stringResource(R.string.moves_count, moves), style = MaterialTheme.typography.labelMedium, color = MutedText)
                     }
                     if (game != null && !game.isComplete && !state.isGenerating) {
-                        OutlinedButton(onClick = { isPaused = !isPaused }) {
+                        OutlinedButton(onClick = { isPaused = !isPaused }, enabled = !state.isPersisting) {
                             Text(stringResource(if (isPaused) R.string.resume else R.string.pause))
                         }
                     }
@@ -218,20 +219,48 @@ fun ArrowLogicScreen() {
                         BoardViewport(
                             board = board,
                             onArrowTapped = viewModel::onArrowTapped,
+                            interactionsEnabled = !state.isPersisting,
                             modifier = Modifier.fillMaxWidth().weight(1f)
                         )
                         Text(
                             messageText(state.message),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (game.isComplete) GoldAccent else MainText,
+                            color = if (state.message == GameplayMessage.PersistenceWarning) GoldAccent
+                                else if (game.isComplete) GoldAccent else MainText,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        if (state.isPersisting) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.weight(1f),
+                                    color = AvailableArrowColor
+                                )
+                                Text(
+                                    stringResource(R.string.saving_progress),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MutedText
+                                )
+                            }
+                        }
+                        if (state.message == GameplayMessage.PersistenceWarning && !state.isPersisting) {
+                            OutlinedButton(
+                                onClick = viewModel::retrySave,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(stringResource(R.string.retry_save))
+                            }
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             OutlinedButton(
                                 onClick = viewModel::resetLevel,
+                                enabled = !state.isPersisting,
                                 modifier = Modifier.weight(1f)
                             ) { Text(stringResource(R.string.restart)) }
                             Button(
@@ -239,7 +268,8 @@ fun ArrowLogicScreen() {
                                     isPaused = false
                                     viewModel.nextLevel()
                                 },
-                                enabled = game.isComplete,
+                                enabled = game.isComplete && !state.isPersisting &&
+                                    state.message != GameplayMessage.PersistenceWarning,
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = GoldAccent,
@@ -281,6 +311,7 @@ private fun messageText(message: GameplayMessage): String = when (message) {
 private fun BoardViewport(
     board: Board,
     onArrowTapped: (String) -> Unit,
+    interactionsEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     val horizontalState = rememberScrollState()
@@ -346,7 +377,7 @@ private fun BoardViewport(
                         .size(width = arrowWidth, height = arrowHeight)
                         .clip(RoundedCornerShape(9.dp))
                         .background(arrowColor)
-                        .clickable { onArrowTapped(arrow.id) }
+                        .clickable(enabled = interactionsEnabled) { onArrowTapped(arrow.id) }
                         .semantics(mergeDescendants = true) {
                             contentDescription = accessibleDescription
                             role = Role.Button
