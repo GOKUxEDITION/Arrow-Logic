@@ -28,6 +28,7 @@
     <string name="message_persistence_warning">Your move is visible, but saving progress failed. Keep the app open and try again.</string>
     <string name="saving_progress">Saving progress…</string>
     <string name="retry_save">Retry save</string>
+    <string name="retry_generation">Retry generation</string>
     <string name="direction_up">up</string>
     <string name="direction_down">down</string>
     <string name="direction_left">left</string>
