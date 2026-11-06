@@ -44,6 +44,18 @@ class ConstructivePuzzleGeneratorTest {
         assertEquals(profile.targetArrowCount, generated.board.arrows.size)
     }
 
+    @Test fun defaultProgressionBandsGenerateVerifiedBoards() {
+        listOf("1", "16", "256").forEach { levelText ->
+            val level = LevelNumber.parse(levelText)
+            val result = ConstructivePuzzleGenerator.generate(level, "progression-qa")
+            assertTrue("Level $levelText generation failed: $result", result is GenerationResult.Generated)
+            val generated = result as GenerationResult.Generated
+            assertEquals(level, generated.level)
+            assertTrue(SolutionReplayValidator.validate(generated.board, generated.constructiveSolution).valid)
+            assertTrue(SolutionReplayValidator.validate(generated.board, generated.solverSolution).valid)
+        }
+    }
+
     @Test fun hugeLevelNumberDoesNotOverflowDifficultyCalculation() {
         val level = LevelNumber.parse("999999999999999999999999999999999999999999999999")
         val difficulty = DifficultyProfile.forLevel(level)
