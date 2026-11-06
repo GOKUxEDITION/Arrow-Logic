@@ -75,7 +75,7 @@ class GameDataDaoTest {
             listOf(SessionActiveArrowEntity(puzzle.puzzleId, "A002", 0))
         )
 
-        val loadedPuzzle = dao.getPuzzleByIdentity(level, 1, 123L)
+        val loadedPuzzle = dao.getPuzzleByLevelAndVersion(level, 1)
         val loadedSession = dao.getLatestSession()
 
         assertNotNull(loadedPuzzle)
@@ -145,11 +145,44 @@ class GameDataDaoTest {
         assertTrue(dao.hasRecentFingerprint("hash-4"))
     }
 
+    @Test
+    fun atomicPuzzleInsertRejectsRecentDuplicateFingerprints() = runBlocking {
+        val first = puzzleDefinition(levelNumber = "10")
+        val firstFingerprint = RecentPuzzleFingerprintEntity(
+            fingerprint = "same-layout-hash",
+            levelNumber = "10",
+            generatorVersion = 1,
+            createdAtEpochMs = 10L
+        )
+        val firstArrow = PuzzleArrowEntity(
+            puzzleId = first.puzzleId,
+            arrowId = "A001",
+            orderIndex = 0,
+            headX = 1,
+            headY = 0,
+            direction = "RIGHT",
+            length = 2
+        )
+        assertTrue(
+            dao.savePuzzleIfFingerprintNovel(first, listOf(firstArrow), firstFingerprint, 500)
+        )
+
+        val second = puzzleDefinition(levelNumber = "11").copy(puzzleId = "puzzle-11")
+        val secondFingerprint = firstFingerprint.copy(levelNumber = "11", createdAtEpochMs = 11L)
+        val secondArrow = firstArrow.copy(puzzleId = second.puzzleId)
+        assertFalse(
+            dao.savePuzzleIfFingerprintNovel(second, listOf(secondArrow), secondFingerprint, 500)
+        )
+        assertNull(dao.getPuzzleByLevelAndVersion("11", 1))
+        assertTrue(dao.hasRecentFingerprint("same-layout-hash"))
+    }
+
     private fun puzzleDefinition(levelNumber: String = "7") = PuzzleDefinitionEntity(
         puzzleId = "puzzle-$levelNumber",
         levelNumber = levelNumber,
         generatorVersion = 1,
         randomSeed = 123L,
+        seedRetryCounter = 0,
         boardWidth = 4,
         boardHeight = 4,
         targetArrowCount = 2,
