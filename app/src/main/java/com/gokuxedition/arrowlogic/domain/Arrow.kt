@@ -2,9 +2,13 @@ package com.gokuxedition.arrowlogic.domain
 
 data class Cell(val x: Int, val y: Int)
 
+/**
+ * Arrow head is the cell nearest the escape edge. Occupied cells extend backwards
+ * from the head opposite the travel direction, matching the canonical puzzle contract.
+ */
 data class Arrow(
     val id: String,
-    val tail: Cell,
+    val head: Cell,
     val direction: Direction,
     val length: Int
 ) {
@@ -13,16 +17,11 @@ data class Arrow(
         require(length > 0) { "Arrow length must be positive" }
     }
 
-    /** Occupied cells ordered from tail to head. */
+    /** Occupied cells ordered from head backwards toward the tail. */
     fun occupiedCells(): List<Cell> =
         (0 until length).map { offset ->
-            Cell(tail.x + direction.dx * offset, tail.y + direction.dy * offset)
+            Cell(head.x - direction.dx * offset, head.y - direction.dy * offset)
         }
-
-    fun head(): Cell = Cell(
-        tail.x + direction.dx * (length - 1),
-        tail.y + direction.dy * (length - 1)
-    )
 }
 
 data class Board(
