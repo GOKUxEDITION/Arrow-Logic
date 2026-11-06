@@ -8,7 +8,7 @@
 
 ## Product definition
 
-The player removes directional arrows by tapping an arrow whose complete forward ray to the board edge is empty. Removing an arrow may expose another arrow. Arrows do not rotate, slide or wrap. The board is a finite rectangular integer grid.
+The player removes directional arrows by tapping an arrow whose complete forward ray to the board edge is empty. Removing an arrow may expose another arrow. Arrows do not rotate, slide or wrap. The board is a finite rectangular integer grid. Each arrow's coordinate is its head cell; occupied cells extend backwards opposite the direction vector.
 
 ## Non-negotiable rules
 
