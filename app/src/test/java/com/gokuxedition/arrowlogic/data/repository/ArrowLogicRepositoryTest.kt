@@ -170,6 +170,38 @@ class ArrowLogicRepositoryTest {
         assertEquals(level, repository.getCurrentLevel())
     }
 
+    @Test
+    fun completingHistoricalLevelDoesNotRegressCurrentCampaignPointer() = runBlocking {
+        val board = validBoard()
+        val historicalPuzzle = requireNotNull(
+            repository.persistGeneratedPuzzle(
+                level = LevelNumber.parse("5"),
+                profile = profile(),
+                board = board,
+                fingerprint = "historical-level-layout",
+                randomSeed = 505L,
+                seedRetryCounter = 0
+            )
+        )
+        repository.persistGeneratedPuzzle(
+            level = LevelNumber.parse("10"),
+            profile = profile(),
+            board = board,
+            fingerprint = "current-level-layout",
+            randomSeed = 1010L,
+            seedRetryCounter = 0
+        )
+
+        repository.completeLevel(
+            puzzleId = historicalPuzzle,
+            level = LevelNumber.parse("5"),
+            moveCount = board.arrows.size,
+            hintsUsed = 0
+        )
+
+        assertEquals("10", repository.getCurrentLevel().decimal)
+    }
+
     private fun profile() = DifficultyProfile(
         boardWidth = 4,
         boardHeight = 3,
