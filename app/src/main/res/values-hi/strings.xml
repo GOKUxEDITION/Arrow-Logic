@@ -28,6 +28,7 @@
     <string name="message_persistence_warning">आपकी चाल दिख रही है, लेकिन प्रगति सेव नहीं हुई। ऐप खुला रखें और दोबारा प्रयास करें।</string>
     <string name="saving_progress">प्रगति सेव हो रही है…</string>
     <string name="retry_save">फिर से सेव करें</string>
+    <string name="retry_generation">पहेली फिर बनाएँ</string>
     <string name="direction_up">ऊपर</string>
     <string name="direction_down">नीचे</string>
     <string name="direction_left">बाएँ</string>
