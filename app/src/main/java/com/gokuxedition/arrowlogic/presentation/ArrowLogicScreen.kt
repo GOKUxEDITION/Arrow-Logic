@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -56,6 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gokuxedition.arrowlogic.domain.Board
 import com.gokuxedition.arrowlogic.domain.Direction
 import com.gokuxedition.arrowlogic.domain.EscapeRules
+import com.gokuxedition.arrowlogic.R
 
 private val PageBackground = Color(0xFF090B1D)
 private val PanelBackground = Color(0xFF151A38)
@@ -93,7 +95,7 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
             containerColor = PageBackground,
             topBar = {
                 TopAppBar(
-                    title = { Text("ARROW LOGIC", style = MaterialTheme.typography.titleLarge) },
+                    title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = PageBackground,
                         titleContentColor = MainText
@@ -118,16 +120,16 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("LEVEL ${state.level.decimal}", style = MaterialTheme.typography.titleMedium, color = MainText)
-                        Text("Think ahead. Clear the path.", style = MaterialTheme.typography.bodySmall, color = MutedText)
+                        Text(stringResource(R.string.level_label, state.level.decimal), style = MaterialTheme.typography.titleMedium, color = MainText)
+                        Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodySmall, color = MutedText)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("$remainingArrows / $totalArrows ARROWS", style = MaterialTheme.typography.labelLarge, color = MainText)
-                        Text("$moves MOVES", style = MaterialTheme.typography.labelMedium, color = MutedText)
+                        Text(stringResource(R.string.arrows_count, remainingArrows, totalArrows), style = MaterialTheme.typography.labelLarge, color = MainText)
+                        Text(stringResource(R.string.moves_count, moves), style = MaterialTheme.typography.labelMedium, color = MutedText)
                     }
                     if (game != null && !game.isComplete && !state.isGenerating) {
                         OutlinedButton(onClick = { isPaused = !isPaused }) {
-                            Text(if (isPaused) "Resume" else "Pause")
+                            Text(stringResource(if (isPaused) R.string.resume else R.string.pause))
                         }
                     }
                 }
@@ -154,7 +156,7 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(color = AvailableArrowColor)
-                                Text(state.message, modifier = Modifier.padding(top = 16.dp), color = MainText)
+                                Text(messageText(state.message), modifier = Modifier.padding(top = 16.dp), color = MainText)
                             }
                         }
                     }
@@ -164,10 +166,10 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                             colors = CardDefaults.cardColors(containerColor = PanelBackground)
                         ) {
                             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Puzzle unavailable", style = MaterialTheme.typography.titleLarge, color = MainText)
-                                Text(state.message, color = MutedText)
+                                Text(stringResource(R.string.puzzle_unavailable), style = MaterialTheme.typography.titleLarge, color = MainText)
+                                Text(messageText(state.message), color = MutedText)
                                 state.generationError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MutedText) }
-                                Text("The game will not display an unverified generated level.", color = MainText)
+                                Text(stringResource(R.string.unverified_level_warning), color = MainText)
                             }
                         }
                     }
@@ -181,19 +183,19 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("PAUSED", style = MaterialTheme.typography.headlineMedium, color = GoldAccent)
-                                Text("Your current puzzle is unchanged.", modifier = Modifier.padding(top = 8.dp), color = MutedText)
+                                Text(stringResource(R.string.paused), style = MaterialTheme.typography.headlineMedium, color = GoldAccent)
+                                Text(stringResource(R.string.session_unchanged), modifier = Modifier.padding(top = 8.dp), color = MutedText)
                                 Button(
                                     onClick = { isPaused = false },
                                     modifier = Modifier.fillMaxWidth().padding(top = 24.dp)
-                                ) { Text("Resume") }
+                                ) { Text(stringResource(R.string.resume)) }
                                 OutlinedButton(
                                     onClick = {
                                         viewModel.resetLevel()
                                         isPaused = false
                                     },
                                     modifier = Modifier.fillMaxWidth()
-                                ) { Text("Restart level") }
+                                ) { Text(stringResource(R.string.restart_level)) }
                             }
                         }
                     }
@@ -205,7 +207,7 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                             modifier = Modifier.fillMaxWidth().weight(1f)
                         )
                         Text(
-                            state.message,
+                            messageText(state.message),
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (game.isComplete) GoldAccent else MainText,
                             modifier = Modifier.fillMaxWidth()
@@ -217,7 +219,7 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                             OutlinedButton(
                                 onClick = viewModel::resetLevel,
                                 modifier = Modifier.weight(1f)
-                            ) { Text("Restart") }
+                            ) { Text(stringResource(R.string.restart)) }
                             Button(
                                 onClick = {
                                     isPaused = false
@@ -231,10 +233,10 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                                     disabledContainerColor = Color(0xFF3C4055),
                                     disabledContentColor = Color(0xFF9299B3)
                                 )
-                            ) { Text("Next level") }
+                            ) { Text(stringResource(R.string.next_level)) }
                         }
                         Text(
-                            "Tap any arrow segment. Blocked arrows stay in place until their path is clear.",
+                            stringResource(R.string.board_instruction),
                             style = MaterialTheme.typography.bodySmall,
                             color = MutedText
                         )
@@ -243,6 +245,21 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
             }
         }
     }
+}
+
+
+@Composable
+private fun messageText(message: GameplayMessage): String = when (message) {
+    GameplayMessage.Preparing -> stringResource(R.string.message_preparing)
+    is GameplayMessage.Generating -> stringResource(R.string.message_generating, message.level)
+    GameplayMessage.Verified -> stringResource(R.string.message_verified)
+    GameplayMessage.GenerationFailed -> stringResource(R.string.message_generation_failed)
+    is GameplayMessage.GenerationRejected -> stringResource(R.string.message_generation_rejected)
+    is GameplayMessage.Complete -> stringResource(R.string.message_completed, message.moves)
+    is GameplayMessage.ArrowEscaped -> stringResource(R.string.message_arrow_escaped, message.remaining)
+    GameplayMessage.ArrowBlocked -> stringResource(R.string.message_arrow_blocked)
+    GameplayMessage.ArrowUnknown -> stringResource(R.string.message_arrow_unknown)
+    GameplayMessage.Reset -> stringResource(R.string.message_reset)
 }
 
 @Composable
@@ -289,7 +306,17 @@ private fun BoardViewport(
                 val cells = arrow.occupiedCells()
                 val originX = cells.minOf { it.x }
                 val originY = cells.minOf { it.y }
-                val directionName = arrow.direction.name.lowercase()
+                val directionName = stringResource(
+                    when (arrow.direction) {
+                        Direction.UP -> R.string.direction_up
+                        Direction.DOWN -> R.string.direction_down
+                        Direction.LEFT -> R.string.direction_left
+                        Direction.RIGHT -> R.string.direction_right
+                    }
+                )
+                val arrowStateDescription = stringResource(
+                    if (isClear) R.string.arrow_path_clear else R.string.arrow_blocked
+                )
 
                 Box(
                     modifier = Modifier
@@ -299,7 +326,13 @@ private fun BoardViewport(
                         .background(arrowColor)
                         .clickable { onArrowTapped(arrow.id) }
                         .semantics(mergeDescendants = true) {
-                            contentDescription = "Arrow ${arrow.id}, points $directionName, length ${arrow.length}, ${if (isClear) "path clear" else "blocked"}"
+                            contentDescription = stringResource(
+                                R.string.arrow_content_description,
+                                arrow.id,
+                                directionName,
+                                arrow.length,
+                                arrowStateDescription
+                            )
                             role = Role.Button
                         },
                     contentAlignment = Alignment.Center
