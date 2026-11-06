@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -58,6 +59,7 @@ import com.gokuxedition.arrowlogic.domain.Board
 import com.gokuxedition.arrowlogic.domain.Direction
 import com.gokuxedition.arrowlogic.domain.EscapeRules
 import com.gokuxedition.arrowlogic.R
+import com.gokuxedition.arrowlogic.ArrowLogicApplication
 
 private val PageBackground = Color(0xFF090B1D)
 private val PanelBackground = Color(0xFF151A38)
@@ -86,7 +88,11 @@ private val ArrowLogicDarkColors = darkColorScheme(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
+fun ArrowLogicScreen() {
+    val application = LocalContext.current.applicationContext as ArrowLogicApplication
+    val viewModel: ArrowLogicViewModel = viewModel(
+        factory = ArrowLogicViewModelFactory(application.container.gameRepository)
+    )
     val state by viewModel.uiState.collectAsState()
     var isPaused by remember { mutableStateOf(false) }
 
@@ -268,6 +274,7 @@ private fun messageText(message: GameplayMessage): String = when (message) {
     GameplayMessage.ArrowBlocked -> stringResource(R.string.message_arrow_blocked)
     GameplayMessage.ArrowUnknown -> stringResource(R.string.message_arrow_unknown)
     GameplayMessage.Reset -> stringResource(R.string.message_reset)
+    GameplayMessage.PersistenceWarning -> stringResource(R.string.message_persistence_warning)
 }
 
 @Composable
