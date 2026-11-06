@@ -185,6 +185,12 @@ fun ArrowLogicScreen() {
                                     )
                                 }
                                 Text(stringResource(R.string.unverified_level_warning), color = MainText)
+                                Button(
+                                    onClick = { viewModel.loadLevel(state.level) },
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                ) {
+                                    Text(stringResource(R.string.retry_generation))
+                                }
                             }
                         }
                     }
