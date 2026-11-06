@@ -5,7 +5,7 @@ import org.junit.Test
 
 class PuzzleSolverTest {
     @Test fun solvesSingleArrowBoard() {
-        val board = Board(3, 2, listOf(Arrow("a", Cell(0, 0), Direction.RIGHT, 2)))
+        val board = Board(3, 2, listOf(Arrow("a", Cell(1, 0), Direction.RIGHT, 2)))
         val result = PuzzleSolver.solve(board)
         assertEquals(SolveResult.Solved(listOf("a")), result)
     }
