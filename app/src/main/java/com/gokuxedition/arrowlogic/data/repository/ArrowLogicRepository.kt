@@ -57,14 +57,12 @@ class ArrowLogicRepository(
     }
 
     suspend fun getCurrentLevel(): LevelNumber =
-        dao.getPlayerProgress()?.let { safeLevel(it.currentLevelNumber) } ?: LevelNumber.FIRST
+        dao.getPlayerProgress()?.let { LevelNumber.parse(it.currentLevelNumber) } ?: LevelNumber.FIRST
 
-    suspend fun loadPuzzle(level: LevelNumber, rootSeed: String): StoredPuzzle? {
-        val seed = seedFor(level, rootSeed)
-        val definition = dao.getPuzzleByIdentity(
+    suspend fun loadPuzzle(level: LevelNumber): StoredPuzzle? {
+        val definition = dao.getPuzzleByLevelAndVersion(
             levelNumber = level.decimal,
-            generatorVersion = ConstructivePuzzleGenerator.GENERATOR_VERSION,
-            randomSeed = seed
+            generatorVersion = ConstructivePuzzleGenerator.GENERATOR_VERSION
         ) ?: return null
         return definition.toStoredPuzzleOrNull()
     }
@@ -74,16 +72,19 @@ class ArrowLogicRepository(
         rootSeed: String,
         profile: DifficultyProfile,
         board: Board,
-        fingerprint: String
-    ): String {
-        val seed = seedFor(level, rootSeed)
-        val puzzleId = stablePuzzleId(level, seed, fingerprint)
+        fingerprint: String,
+        randomSeed: Long,
+        seedRetryCounter: Int
+    ): String? {
+        require(seedRetryCounter >= 0)
+        val puzzleId = stablePuzzleId(level, randomSeed, fingerprint)
         val now = System.currentTimeMillis()
         val definition = PuzzleDefinitionEntity(
             puzzleId = puzzleId,
             levelNumber = level.decimal,
             generatorVersion = ConstructivePuzzleGenerator.GENERATOR_VERSION,
-            randomSeed = seed,
+            randomSeed = randomSeed,
+            seedRetryCounter = seedRetryCounter,
             boardWidth = board.width,
             boardHeight = board.height,
             targetArrowCount = board.arrows.size,
@@ -107,8 +108,19 @@ class ArrowLogicRepository(
         require(EscapeRules.validateBoard(board).isEmpty()) {
             "Refusing to persist an invalid board"
         }
-        dao.savePuzzle(definition, arrowRows)
-        recordFingerprint(level, fingerprint, ConstructivePuzzleGenerator.GENERATOR_VERSION, now)
+        val fingerprintEntity = RecentPuzzleFingerprintEntity(
+            fingerprint = fingerprint,
+            levelNumber = level.decimal,
+            generatorVersion = ConstructivePuzzleGenerator.GENERATOR_VERSION,
+            createdAtEpochMs = now
+        )
+        val saved = dao.savePuzzleIfFingerprintNovel(
+            definition = definition,
+            arrows = arrowRows,
+            fingerprint = fingerprintEntity,
+            maximumRecentEntries = recentFingerprintLimit
+        )
+        if (!saved) return null
         updateCurrentProgress(level, puzzleId, now)
         return puzzleId
     }
@@ -164,10 +176,14 @@ class ArrowLogicRepository(
         val now = System.currentTimeMillis()
         val nextLevel = level.next()
         val previous = dao.getPlayerProgress()
-        val highest = previous?.highestUnlockedLevelNumber
-            ?.let(::safeLevel)
-            ?.let { if (it >= nextLevel) it else nextLevel }
-            ?: nextLevel
+        val previousHighest = previous?.let {
+            LevelNumber.parse(it.highestUnlockedLevelNumber)
+        }
+        val highest = if (previousHighest != null && previousHighest >= nextLevel) {
+            previousHighest
+        } else {
+            nextLevel
+        }
 
         val completed = CompletedLevelEntity(
             levelNumber = level.decimal,
@@ -210,26 +226,11 @@ class ArrowLogicRepository(
         return dao.getRecentFingerprints(limit, offset).map { it.fingerprint }
     }
 
-    private suspend fun recordFingerprint(
-        level: LevelNumber,
-        fingerprint: String,
-        generatorVersion: Int,
-        createdAt: Long
-    ) {
-        dao.insertRecentFingerprint(
-            RecentPuzzleFingerprintEntity(
-                fingerprint = fingerprint,
-                levelNumber = level.decimal,
-                generatorVersion = generatorVersion,
-                createdAtEpochMs = createdAt
-            )
-        )
-        dao.trimRecentFingerprints(recentFingerprintLimit)
-    }
-
     private suspend fun updateCurrentProgress(level: LevelNumber, puzzleId: String, now: Long) {
         val existing = dao.getPlayerProgress()
-        val previousHighest = existing?.highestUnlockedLevelNumber?.let(::safeLevel)
+        val previousHighest = existing?.let {
+            LevelNumber.parse(it.highestUnlockedLevelNumber)
+        }
         val highest = if (previousHighest == null || level > previousHighest) level else previousHighest
         dao.upsertPlayerProgress(
             PlayerProgressEntity(
@@ -264,16 +265,6 @@ class ArrowLogicRepository(
         )
     }
 
-    private fun seedFor(level: LevelNumber, rootSeed: String): Long =
-        com.gokuxedition.arrowlogic.domain.LevelSeed.derive(
-            rootSeed,
-            ConstructivePuzzleGenerator.GENERATOR_VERSION,
-            level
-        )
-
-    private fun safeLevel(value: String): LevelNumber? =
-        runCatching { LevelNumber.parse(value) }.getOrNull()
-
     private fun stablePuzzleId(level: LevelNumber, seed: Long, fingerprint: String): String {
         val identity = "${ConstructivePuzzleGenerator.GENERATOR_VERSION}|${level.decimal}|$seed|$fingerprint"
         val digest = MessageDigest.getInstance("SHA-256")
@@ -286,6 +277,7 @@ data class StoredPuzzle(
     val puzzleId: String,
     val level: LevelNumber,
     val seed: Long,
+    val seedRetryCounter: Int,
     val board: Board,
     val contentHash: String
 )
@@ -311,6 +303,7 @@ private fun PuzzleDefinitionWithArrows.toStoredPuzzleOrNull(): StoredPuzzle? {
         puzzleId = definition.puzzleId,
         level = level,
         seed = definition.randomSeed,
+        seedRetryCounter = definition.seedRetryCounter,
         board = board,
         contentHash = definition.contentHash
     )
