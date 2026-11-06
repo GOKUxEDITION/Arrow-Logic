@@ -8,40 +8,43 @@ Arrow Logic is an offline-first arrow escape puzzle. Tap an arrow only when its 
 
 ## Project status
 
-This repository is being initialized from the Arrow Escape Puzzle PRD v2.0, with the product name updated to **Arrow Logic**.
+- [x] Repository bootstrap and Android Kotlin + Compose project skeleton
+- [x] Integer-grid arrow geometry using the PRD head-cell convention
+- [x] Canonical forward-ray collision rule and atomic move engine
+- [x] Independent backtracking solver with explicit node-budget outcome
+- [x] Arbitrary-precision level identifiers
+- [x] Versioned deterministic seed derivation and PRNG
+- [x] Constructive on-demand generator with witness replay and independent solver gates
+- [x] Interactive Compose gameplay board, tap handling, restart, pause and level progression
+- [ ] Room persistence, DataStore preferences and process-death session recovery
+- [ ] Home, tutorial, completion, level history, settings, privacy/about screens
+- [ ] Hints, optional undo, localization and remaining accessibility polish
+- [ ] Bounded recent fingerprint history, difficulty telemetry and stress/property tests
+- [ ] Physical-device QA and release packaging
 
-- [x] Repository bootstrap and product identity
-- [x] Android project skeleton
-- [x] Integer-grid domain model and canonical escape rule
-- [x] Atomic move engine
-- [x] Independent backtracking solver
-- [ ] Deterministic procedural generator and solution-witness validation
-- [ ] Room persistence and session recovery
-- [ ] Full Compose gameplay UI, accessibility and localization
-- [ ] Full QA, device verification and release packaging
-
-A checked item means source has been committed, not that a release build or physical-device test has been performed. No APK or release is claimed.
+A checked item means source is committed. A CI pass applies only to the exact commit shown by its workflow run. No physical-device install, APK/AAB or release is claimed.
 
 ## Core rules
 
 - Grid coordinates are integers; origin is top-left.
+- Arrow coordinates identify the arrowhead cell; occupied cells extend backwards opposite the travel direction.
 - Directions are UP, DOWN, LEFT and RIGHT.
 - An arrow can escape only if every cell strictly ahead of its head through the board edge is empty.
 - A blocked move changes no game state.
 - A successful move removes exactly one arrow.
-- Core gameplay is designed to work offline.
+- Core gameplay and procedural progression run locally; no backend is required.
 
 ## Unlimited progression
 
-Level identifiers use positive arbitrary-precision decimal strings at the domain boundary. There is no product-defined final level or fixed level catalogue. Generation is on demand; the app must never pre-generate an infinite catalogue. The generator must validate every candidate with an independent solver and replay the solution before publishing it.
+Level identifiers are positive arbitrary-precision decimal strings, not Int or Long. There is no product-defined final level or fixed level catalogue. Generation is on demand; the app must never pre-generate future levels. No puzzle is playable until structural validation, constructive witness replay, independent solving and solver-solution replay pass.
 
 ## Build
 
-Open the project in a recent Android Studio version with Android SDK 36 installed, allow Gradle sync, then run the `:app` configuration. The Gradle wrapper is not committed yet; use the Gradle version supported by the installed Android Studio or generate a wrapper from that environment.
+The GitHub Actions workflow installs Android SDK 36 and runs `:app:testDebugUnitTest` using Gradle 8.13 and JDK 17. A complete Gradle wrapper JAR and launch scripts are not yet committed; CI currently uses the Gradle setup action. Android Studio can open the project after Gradle sync with Android SDK 36 installed.
 
 ## Engineering gates
 
-See [docs/ENGINEERING_STATUS.md](docs/ENGINEERING_STATUS.md), [docs/PRODUCT_REQUIREMENTS.md](docs/PRODUCT_REQUIREMENTS.md), and [docs/REQUIREMENTS_TRACEABILITY_MATRIX.md](docs/REQUIREMENTS_TRACEABILITY_MATRIX.md).
+See [docs/ENGINEERING_STATUS.md](docs/ENGINEERING_STATUS.md), [docs/PRODUCT_REQUIREMENTS.md](docs/PRODUCT_REQUIREMENTS.md), [docs/REQUIREMENTS_TRACEABILITY_MATRIX.md](docs/REQUIREMENTS_TRACEABILITY_MATRIX.md), and [docs/QA_TEST_PLAN.md](docs/QA_TEST_PLAN.md).
 
 ## Project identity
 
