@@ -69,7 +69,6 @@ class ArrowLogicRepository(
 
     suspend fun persistGeneratedPuzzle(
         level: LevelNumber,
-        rootSeed: String,
         profile: DifficultyProfile,
         board: Board,
         fingerprint: String,
