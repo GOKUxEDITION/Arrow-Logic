@@ -22,3 +22,12 @@
 - Offline play, pause/resume, font scaling, TalkBack and reduced motion.
 - Compose UI tests and physical-device smoke test.
 - Record exact commands, environment and pass/fail counts. Never infer a pass.
+
+
+## Current UI / localization verification (execution pending)
+- Confirm device English locale loads `res/values/strings.xml`.
+- Confirm device Hindi locale loads `res/values-hi/strings.xml`.
+- Verify all user-visible gameplay, blocked, success, pause, restart and generation-failure messages are localized.
+- Verify TalkBack announces arrow ID, direction, length and clear/blocked state in the selected locale.
+- Confirm 48dp minimum tap cells remain tappable on small screens and large font settings.
+- Confirm screen compiles and CI test suite passes on the current commit.
