@@ -168,7 +168,15 @@ fun ArrowLogicScreen(viewModel: ArrowLogicViewModel = viewModel()) {
                             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Text(stringResource(R.string.puzzle_unavailable), style = MaterialTheme.typography.titleLarge, color = MainText)
                                 Text(messageText(state.message), color = MutedText)
-                                state.generationError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MutedText) }
+                                val errorDetails = (state.message as? GameplayMessage.GenerationRejected)?.details
+                                    ?: state.generationError
+                                errorDetails?.let {
+                                    Text(
+                                        stringResource(R.string.message_generation_details, it),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MutedText
+                                    )
+                                }
                                 Text(stringResource(R.string.unverified_level_warning), color = MainText)
                             }
                         }
@@ -317,6 +325,13 @@ private fun BoardViewport(
                 val arrowStateDescription = stringResource(
                     if (isClear) R.string.arrow_path_clear else R.string.arrow_blocked
                 )
+                val accessibleDescription = stringResource(
+                    R.string.arrow_content_description,
+                    arrow.id,
+                    directionName,
+                    arrow.length,
+                    arrowStateDescription
+                )
 
                 Box(
                     modifier = Modifier
@@ -326,13 +341,7 @@ private fun BoardViewport(
                         .background(arrowColor)
                         .clickable { onArrowTapped(arrow.id) }
                         .semantics(mergeDescendants = true) {
-                            contentDescription = stringResource(
-                                R.string.arrow_content_description,
-                                arrow.id,
-                                directionName,
-                                arrow.length,
-                                arrowStateDescription
-                            )
+                            contentDescription = accessibleDescription
                             role = Role.Button
                         },
                     contentAlignment = Alignment.Center
