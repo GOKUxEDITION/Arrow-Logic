@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -195,7 +196,7 @@ private fun BoardViewport(
 
                 Box(
                     modifier = Modifier
-                        .padding(start = CellSize * arrow.tail.x.toFloat(), top = CellSize * arrow.tail.y.toFloat())
+                        .offset(x = CellSize * arrow.tail.x.toFloat(), y = CellSize * arrow.tail.y.toFloat())
                         .size(width = arrowWidth, height = arrowHeight)
                         .clip(RoundedCornerShape(9.dp))
                         .background(arrowColor)
