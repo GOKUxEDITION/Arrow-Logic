@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">ARROW LOGIC</string>
+    <string name="tagline">Think ahead. Clear the path.</string>
+    <string name="level_label">LEVEL %1$s</string>
+    <string name="moves_count">%1$d MOVES</string>
+    <string name="arrows_count">%1$d / %2$d ARROWS</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="puzzle_unavailable">Puzzle unavailable</string>
+    <string name="unverified_level_warning">The game will not display an unverified generated level.</string>
+    <string name="paused">PAUSED</string>
+    <string name="session_unchanged">Your current puzzle is unchanged.</string>
+    <string name="restart_level">Restart level</string>
+    <string name="restart">Restart</string>
+    <string name="next_level">Next level</string>
+    <string name="board_instruction">Tap any arrow segment. Blocked arrows stay in place until their path is clear.</string>
+    <string name="message_preparing">Preparing your puzzle</string>
+    <string name="message_generating">Generating and verifying level %1$s</string>
+    <string name="message_verified">Level verified. Tap an arrow whose path to the edge is clear.</string>
+    <string name="message_generation_failed">Puzzle generation failed safely.</string>
+    <string name="message_generation_rejected">This level could not pass every verification gate.</string>
+    <string name="message_generation_details">%1$s</string>
+    <string name="message_completed">Puzzle complete. You cleared every arrow in %1$d moves.</string>
+    <string name="message_arrow_escaped">Arrow escaped. %1$d remaining.</string>
+    <string name="message_arrow_blocked">That arrow is blocked. Clear the arrow in its forward path first.</string>
+    <string name="message_arrow_unknown">That arrow is no longer on the board.</string>
+    <string name="message_reset">Level reset. Find a clear escape path.</string>
+    <string name="direction_up">up</string>
+    <string name="direction_down">down</string>
+    <string name="direction_left">left</string>
+    <string name="direction_right">right</string>
+    <string name="arrow_path_clear">path clear</string>
+    <string name="arrow_blocked">blocked</string>
+    <string name="arrow_content_description">Arrow %1$s, points %2$s, length %3$d, %4$s</string>
+</resources>
