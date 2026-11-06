@@ -7,7 +7,7 @@ class SolutionReplayValidatorTest {
     @Test fun acceptsACompleteLegalWitness() {
         val board = Board(4, 2, listOf(
             Arrow("a", Cell(0, 0), Direction.RIGHT, 2),
-            Arrow("b", Cell(0, 1), Direction.LEFT, 2)
+            Arrow("b", Cell(3, 1), Direction.LEFT, 2)
         ))
         assertTrue(SolutionReplayValidator.validate(board, listOf("a", "b")).valid)
     }
