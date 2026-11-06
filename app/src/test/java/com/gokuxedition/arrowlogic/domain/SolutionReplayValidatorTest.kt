@@ -6,15 +6,15 @@ import org.junit.Test
 class SolutionReplayValidatorTest {
     @Test fun acceptsACompleteLegalWitness() {
         val board = Board(4, 2, listOf(
-            Arrow("a", Cell(0, 0), Direction.RIGHT, 2),
-            Arrow("b", Cell(3, 1), Direction.LEFT, 2)
+            Arrow("a", Cell(1, 0), Direction.RIGHT, 2),
+            Arrow("b", Cell(2, 1), Direction.LEFT, 2)
         ))
         assertTrue(SolutionReplayValidator.validate(board, listOf("a", "b")).valid)
     }
 
     @Test fun rejectsBlockedWitnessStep() {
         val board = Board(5, 2, listOf(
-            Arrow("a", Cell(0, 0), Direction.RIGHT, 2),
+            Arrow("a", Cell(1, 0), Direction.RIGHT, 2),
             Arrow("b", Cell(3, 0), Direction.UP, 1)
         ))
         assertFalse(SolutionReplayValidator.validate(board, listOf("a", "b")).valid)
