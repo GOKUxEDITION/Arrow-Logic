@@ -18,11 +18,12 @@ Arrow Logic is an offline-first arrow escape puzzle. Tap an arrow only when its 
 - [x] Interactive Compose gameplay board, tap handling, restart, pause and level progression
 - [ ] Room persistence, DataStore preferences and process-death session recovery
 - [ ] Home, tutorial, completion, level history, settings, privacy/about screens
-- [ ] Hints, optional undo, localization and remaining accessibility polish
+- [x] English and Hindi string resources for gameplay copy and TalkBack descriptions
+- [ ] Hints, optional undo and remaining accessibility polish
 - [ ] Bounded recent fingerprint history, difficulty telemetry and stress/property tests
 - [ ] Physical-device QA and release packaging
 
-A checked item means source is committed. A CI pass applies only to the exact commit shown by its workflow run. No physical-device install, APK/AAB or release is claimed.
+A checked item means source is committed. App text follows the Android device language where an English or Hindi resource exists. A CI pass applies only to the exact commit shown by its workflow run. No physical-device install, APK/AAB or release is claimed.
 
 ## Core rules
 
