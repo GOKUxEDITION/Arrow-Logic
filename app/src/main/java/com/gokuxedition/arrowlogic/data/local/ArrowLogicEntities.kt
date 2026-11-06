@@ -11,7 +11,7 @@ import androidx.room.Relation
 @Entity(
     tableName = "puzzle_definition",
     indices = [
-        Index(value = ["level_number", "generator_version", "random_seed"], unique = true),
+        Index(value = ["level_number", "generator_version"], unique = true),
         Index(value = ["content_hash"])
     ]
 )
@@ -25,6 +25,8 @@ data class PuzzleDefinitionEntity(
     val generatorVersion: Int,
     @ColumnInfo(name = "random_seed")
     val randomSeed: Long,
+    @ColumnInfo(name = "seed_retry_counter")
+    val seedRetryCounter: Int,
     @ColumnInfo(name = "board_width")
     val boardWidth: Int,
     @ColumnInfo(name = "board_height")
