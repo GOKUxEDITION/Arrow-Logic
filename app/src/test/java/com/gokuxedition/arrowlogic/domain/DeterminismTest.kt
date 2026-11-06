@@ -15,8 +15,17 @@ class DeterminismTest {
     }
 
     @Test fun differentLevelsProduceDifferentSeeds() {
-        val a = LevelSeed.derive("local-root", 1, LevelNumber.parse("1"))
-        val b = LevelSeed.derive("local-root", 1, LevelNumber.parse("2"))
+        val a = LevelSeed.derive("local-root", 2, LevelNumber.parse("1"))
+        val b = LevelSeed.derive("local-root", 2, LevelNumber.parse("2"))
         assertNotEquals(a, b)
+    }
+
+    @Test fun duplicateRetryCounterProducesStableDistinctSeeds() {
+        val level = LevelNumber.parse("1")
+        val first = LevelSeed.derive("local-root", 2, level, retryCounter = 0)
+        val retry = LevelSeed.derive("local-root", 2, level, retryCounter = 1)
+        val retryAgain = LevelSeed.derive("local-root", 2, level, retryCounter = 1)
+        assertNotEquals(first, retry)
+        assertEquals(retry, retryAgain)
     }
 }
