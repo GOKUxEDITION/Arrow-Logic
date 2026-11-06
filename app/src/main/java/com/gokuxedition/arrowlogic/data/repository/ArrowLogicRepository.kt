@@ -147,6 +147,10 @@ class ArrowLogicRepository(
         val activeIds = gameState.remainingArrows.map { it.id }
         require(activeIds.distinct().size == activeIds.size)
         require(activeIds.all { it in boardIds })
+        require(gameState.moveCount >= 0)
+        require(gameState.moveCount == boardIds.size - activeIds.size) {
+            "Move count must equal the number of arrows already escaped"
+        }
 
         val now = System.currentTimeMillis()
         val snapshot = SessionSnapshotEntity(
@@ -250,6 +254,9 @@ class ArrowLogicRepository(
         val activeIds = relation.activeArrows.sortedBy { it.orderIndex }.map { it.arrowId }
         val allIds = puzzle.board.arrows.map { it.id }.toSet()
         if (activeIds.size != activeIds.distinct().size || activeIds.any { it !in allIds }) return null
+        val orderedRows = relation.activeArrows.sortedBy { it.orderIndex }
+        if (orderedRows.map { it.orderIndex } != activeIds.indices.toList()) return null
+        if (session.moveCount != allIds.size - activeIds.size) return null
         val level = runCatching { LevelNumber.parse(session.levelNumber) }.getOrNull() ?: return null
         if (puzzle.level != level) return null
 
